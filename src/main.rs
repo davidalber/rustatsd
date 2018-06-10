@@ -3,6 +3,9 @@ extern crate config;
 use std::net::UdpSocket;
 use std::process;
 
+const BUFFER_SIZE: usize = 576;
+const BUFFER_WINDOW_COUNT: usize = 5;
+
 struct Config {
     port: u32,
     flush_interval: u32,
@@ -23,6 +26,10 @@ fn load_config() -> Config {
     Config::new(config)
 }
 
+fn get_next_buf_window(buf_window: usize) -> usize {
+    (buf_window + 1) % BUFFER_WINDOW_COUNT
+}
+
 fn main() {
     let config = load_config();
     let socket = match UdpSocket::bind(format!("127.0.0.1:{}", config.port)) {
@@ -36,11 +43,13 @@ fn main() {
         },
     };
 
-    let mut buf = [0; 576];
+    let mut buf: [[u8; BUFFER_SIZE]; BUFFER_WINDOW_COUNT] = [[0; BUFFER_SIZE]; BUFFER_WINDOW_COUNT];
+    let mut buf_window = 0;
     loop {
-        match socket.recv_from(&mut buf) {
+        match socket.recv_from(&mut buf[buf_window]) {
             Ok((amt, _src)) => {
-                println!("{:?}", String::from_utf8_lossy(&buf[..amt]));
+                println!("{:?}", String::from_utf8_lossy(&buf[buf_window][..amt]));
+                buf_window = get_next_buf_window(buf_window);
             },
             Err(_err) => (),
         };
