@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["David Alber <alber.david@gmail.com>"]
 
 [dependencies]
+config = "0.8"
