@@ -1,0 +1,4 @@
+[[package]]
+name = "rustatsd"
+version = "0.1.0"
+
