@@ -19,15 +19,34 @@ impl Config {
     }
 }
 
+struct BufferWindowManager {
+    buf: [[u8; BUFFER_SIZE]; BUFFER_WINDOW_COUNT],
+    buf_ready: [bool; BUFFER_SIZE],
+    buf_window: usize,
+}
+
+impl BufferWindowManager {
+    fn new() -> BufferWindowManager {
+        BufferWindowManager {
+            buf: [[0; BUFFER_SIZE]; BUFFER_WINDOW_COUNT],
+            buf_ready: [true; BUFFER_SIZE],
+            buf_window: BUFFER_WINDOW_COUNT-1,
+        }
+    }
+
+    fn get_next(&mut self) -> usize {
+        let ret = self.buf_window;
+        self.buf_window = (self.buf_window + 1) % BUFFER_WINDOW_COUNT;
+        self.buf_ready[ret] = false;
+        ret
+    }
+}
+
 fn load_config() -> Config {
     let mut config = config::Config::default();
     config
         .merge(config::File::with_name("Config")).unwrap();
     Config::new(config)
-}
-
-fn get_next_buf_window(buf_window: usize) -> usize {
-    (buf_window + 1) % BUFFER_WINDOW_COUNT
 }
 
 fn main() {
@@ -42,14 +61,13 @@ fn main() {
             process::exit(1);
         },
     };
+    let mut buf_window_manager = BufferWindowManager::new();
 
-    let mut buf: [[u8; BUFFER_SIZE]; BUFFER_WINDOW_COUNT] = [[0; BUFFER_SIZE]; BUFFER_WINDOW_COUNT];
-    let mut buf_window = 0;
     loop {
-        match socket.recv_from(&mut buf[buf_window]) {
+        let buf_window = buf_window_manager.get_next();
+        match socket.recv_from(&mut buf_window_manager.buf[buf_window]) {
             Ok((amt, _src)) => {
-                println!("{:?}", String::from_utf8_lossy(&buf[buf_window][..amt]));
-                buf_window = get_next_buf_window(buf_window);
+                println!("{:?}", String::from_utf8_lossy(&buf_window_manager.buf[buf_window][..amt]));
             },
             Err(_err) => (),
         };
