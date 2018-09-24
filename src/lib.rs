@@ -88,8 +88,7 @@ impl MetricIngester {
     }
 
     fn process_stats(&self, buf: &[u8]) {
-        let buf_cow = String::from_utf8_lossy(buf);
-        for stat in buf_cow.split("\n") {
+        for stat in String::from_utf8_lossy(buf).split("\n") {
             if let Some(stat_name) = stat.split(":").nth(0) {
                 let worker = self.get_stat_worker(stat_name);
                 println!("[ {} ] {}", worker, stat);
