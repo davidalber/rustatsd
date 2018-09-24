@@ -4,7 +4,7 @@ extern crate seahash;
 use seahash::hash;
 use std::net::UdpSocket;
 use std::process;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
 const BUFFER_SIZE: usize = 576;
@@ -28,6 +28,26 @@ impl Config {
         config
             .merge(config::File::with_name("Config")).unwrap();
         Config::new(config)
+    }
+}
+
+struct MetricWorker {
+    id: u8,
+    rx: Receiver<Option<String>>,
+}
+
+impl MetricWorker {
+    fn new(id: u8, rx: Receiver<Option<String>>) -> MetricWorker {
+        MetricWorker { id, rx }
+    }
+
+    fn process(&self) {
+        loop {
+            match self.rx.recv().unwrap() {
+                Some(metric) => println!("[In worker {}] {}", self.id, metric),
+                None => break,
+            };
+        }
     }
 }
 
@@ -55,12 +75,8 @@ impl MetricIngester {
             let (tx, rx) = channel();
             worker_senders.push(tx);
             thread::spawn(move || {
-                loop {
-                    match rx.recv().unwrap() {
-                        Some(metric) => println!("[In worker {}] {}", i, metric),
-                        None => break,
-                    };
-                }
+                let worker = MetricWorker::new(i, rx);
+                worker.process();
             });
         }
 
