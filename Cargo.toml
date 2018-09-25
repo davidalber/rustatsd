@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["David Alber <alber.david@gmail.com>"]
 
 [dependencies]
+bytes = "0.4.10"
 config = "0.8"
 seahash = "3.0.5"
